@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Big O: An Interactive Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Warm Neutrals" - Using a soft beige background (stone-100), dark text (slate-800), and complementary accents in amber and sky blue for focus and interactivity. This creates a calm, academic, yet engaging feel. -->
+    <!-- Application Structure Plan: The SPA is designed as a linear, scrollable "learning journey" to guide beginners from high-level concepts to specifics. It starts with an interactive graph for intuition (The Hook), moves to comparative definitions (The "Big Three"), dives into detailed examples with interactive code blocks (Deep Dive), demonstrates simplification visually (The Rules), and concludes with a practical quiz (Knowledge Check). This structure was chosen over a dashboard because it provides a clear, guided learning path, preventing overwhelm and building knowledge progressively, which is ideal for educational content. -->
+    <!-- Visualization & Content Choices: 
+    1. Growth Rates Graph: Report Info -> Visualize Growth Rates. Goal -> Compare magnitudes. Viz -> Interactive Chart.js Line Chart. Interaction -> User toggles datasets (lines) and changes 'n' with a slider to see growth explode. Justification -> This is the most powerful way to build an intuitive, lasting mental model of performance differences. Library -> Chart.js.
+    2. Big O/Ω/Θ Definitions: Report Info -> Define O, Ω, Θ. Goal -> Inform & Compare. Presentation -> Three-column HTML/Tailwind layout. Interaction -> Subtle hover effects. Justification -> Side-by-side comparison is the clearest way to explain the relationship between worst, best, and average cases. Method -> HTML/Tailwind.
+    3. Complexity Examples: Report Info -> Explain each complexity class with Python code. Goal -> Organize & Explain. Presentation -> Interactive "cards" for each class. Interaction -> "Analyze" button reveals a step-by-step explanation of the complexity. Justification -> Chunking content into cards makes it digestible. The interactive reveal encourages active engagement rather than passive reading. Method -> HTML/JS.
+    4. Simplification Rules: Report Info -> Drop constants/lower-order terms. Goal -> Demonstrate a process. Presentation -> "Before & After" text with an animated transition. Interaction -> A button triggers an animation that visually "fades out" irrelevant terms. Justification -> Animation makes the abstract rule of "dropping terms" a concrete, memorable visual event. Method -> HTML/CSS/JS.
+    5. Mini-Challenge: Report Info -> Practice Problems. Goal -> Solidify Learning. Presentation -> Multiple-choice quiz. Interaction -> Instant feedback on answers with explanations. Justification -> Active recall via a quiz is a proven method for reinforcing knowledge. Method -> HTML/JS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f4; /* stone-100 */
+            color: #1e293b; /* slate-800 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 50vh;
+            max-height: 500px;
+        }
+        @media (max-width: 640px) {
+            .chart-container {
+                height: 45vh;
+            }
+        }
+        .glassmorphism-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .code-block {
+            background-color: #2d3748; /* gray-800 */
+            color: #e2e8f0; /* gray-200 */
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .fade-out {
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            opacity: 0.2;
+            transform: translateY(10px);
+        }
+        .fade-in {
+            transition: opacity 0.5s ease-in-out;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-slate-800">The ABCs of Performance</h1>
+            <div class="hidden md:flex space-x-6 text-sm font-medium text-slate-600">
+                <a href="#visualizer" class="hover:text-sky-600 transition-colors">Visualizer</a>
+                <a href="#definitions" class="hover:text-sky-600 transition-colors">The Big Three</a>
+                <a href="#deepdive" class="hover:text-sky-600 transition-colors">Deep Dive</a>
+                <a href="#challenge" class="hover:text-sky-600 transition-colors">Challenge</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-12">
+
+        <!-- Section 1: The Visualizer -->
+        <section id="visualizer" class="text-center mb-16 md:mb-24">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4">See Performance in Action</h2>
+            <p class="max-w-3xl mx-auto text-slate-600 mb-8">Have you ever wondered why some code is lightning-fast while other code crawls, even with the same input? It's all about how algorithms "grow". This interactive chart lets you visualize how the number of operations skyrockets for inefficient algorithms as the input size ('n') increases. Toggle the lines and move the slider to build an intuition for performance.</p>
+            
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                <div class="chart-container">
+                    <canvas id="growthChart"></canvas>
+                </div>
+                <div class="mt-6">
+                    <div class="max-w-xl mx-auto mb-4">
+                        <label for="n-slider" class="font-medium">Input Size (n): <span id="n-value" class="font-bold text-sky-600">50</span></label>
+                        <input id="n-slider" type="range" min="1" max="100" value="50" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-2 sm:gap-4 text-xs sm:text-sm">
+                        <!-- Toggles will be generated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: The "Big Three" -->
+        <section id="definitions" class="mb-16 md:mb-24">
+            <div class="text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">The "Big Three" of Performance</h2>
+                <p class="max-w-3xl mx-auto text-slate-600 mb-12">To talk about performance, we use a special notation. Think of them as classifications: a way to describe the absolute best, absolute worst, and the typical performance of an algorithm. Understanding these three is key to analyzing code professionally.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-red-500">
+                    <h3 class="text-2xl font-bold mb-2">O(n) - Big O</h3>
+                    <p class="font-semibold text-red-600 mb-4">The Upper Bound (Worst Case)</p>
+                    <p class="text-slate-600">This is the most important one! It answers: "In the absolute worst-case scenario, how slow can this get?" It gives us a guaranteed upper limit on performance, which is crucial for building reliable software.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500">
+                    <h3 class="text-2xl font-bold mb-2">Ω(n) - Big Omega</h3>
+                    <p class="font-semibold text-green-600 mb-4">The Lower Bound (Best Case)</p>
+                    <p class="text-slate-600">This describes the fantasy scenario. It answers: "What is the absolute fastest this algorithm can possibly run?" While interesting, it's often less practical because we need to plan for the worst, not hope for the best.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-sky-500">
+                    <h3 class="text-2xl font-bold mb-2">Θ(n) - Big Theta</h3>
+                    <p class="font-semibold text-sky-600 mb-4">The Tight Bound (Average Case)</p>
+                    <p class="text-slate-600">This is the most precise description, used when an algorithm's best and worst case are the same. It says: "This algorithm's performance is tightly bound; it will reliably perform within this specific range."</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: A Deep Dive into Big O -->
+        <section id="deepdive" class="mb-16 md:mb-24">
+            <div class="text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">A Deep Dive into Big O</h2>
+                <p class="max-w-3xl mx-auto text-slate-600 mb-12">Since Big O (the worst case) is what we care about most in the real world, let's break down the common classifications you'll see every day. Each has a distinct performance "personality" you'll learn to recognize in code.</p>
+            </div>
+            <div id="big-o-container" class="space-y-8">
+                <!-- Big O examples will be dynamically inserted here -->
+            </div>
+        </section>
+        
+        <!-- Section 4: Simplification -->
+        <section id="simplification" class="mb-16 md:mb-24">
+             <div class="text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Keeping It Simple</h2>
+                <p class="max-w-3xl mx-auto text-slate-600 mb-12">You might analyze an algorithm and get a complex formula like `O(2n² + 100n + 50)`. That's too complicated! For Big O, we only care about what matters most as 'n' gets huge. We follow two simple rules: 1. Drop constant factors. 2. Drop lower-order terms. The term that grows fastest is all that matters.</p>
+            </div>
+            <div class="bg-white p-8 rounded-xl shadow-lg max-w-2xl mx-auto text-center">
+                <p class="text-lg text-slate-500 mb-4">Original Complexity:</p>
+                <div id="simplification-formula" class="text-2xl md:text-3xl font-mono font-bold mb-6">
+                    <span>O(</span><span data-term="n2">2n²</span><span> + </span><span data-term="n">100n</span><span> + </span><span data-term="const">50</span><span>)</span>
+                </div>
+                <button id="simplify-btn" class="bg-amber-500 text-white font-bold py-2 px-6 rounded-full hover:bg-amber-600 transition-transform transform hover:scale-105">Simplify It!</button>
+                 <p class="text-lg text-slate-500 mt-6">Simplified Big O:</p>
+                <p id="simplified-result" class="text-3xl md:text-4xl font-mono font-bold text-sky-600 h-12"></p>
+            </div>
+        </section>
+        
+
+        <!-- Section 5: The Challenge -->
+        <section id="challenge">
+            <div class="text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Test Your Knowledge</h2>
+                <p class="max-w-3xl mx-auto text-slate-600 mb-12">You've seen the theory, now let's put it into practice. Analyze the following Python functions and determine their Big O time complexity. This is the exact skill you'll use in technical interviews and code reviews.</p>
+            </div>
+            <div id="quiz-container" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg max-w-3xl mx-auto">
+                <!-- Quiz content will be injected here -->
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="text-center py-8">
+        <p class="text-slate-500 text-sm">An Interactive Learning Experience by Shivam Shrivastava.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const complexities = {
+                'O(1)': {
+                    label: 'O(1) - Constant',
+                    color: 'rgb(74, 222, 128)', // green-400
+                    equation: n => 1,
+                    description: 'The holy grail. Performance is constant and does not change with input size. It takes the same amount of time to process 1 item as it does 1 million items.',
+                    analogy: 'Like grabbing a book from a library shelf using its exact catalog number. It doesn\'t matter how many books are in the library; the task takes the same amount of time.',
+                    code: `def get_first_element(data_list):\n    # Accessing an element by index is O(1)\n    if data_list:\n        return data_list[0]\n    return None`,
+                    analysis: 'Accessing an element in a Python list (or dictionary by key) is a direct memory lookup. The computer knows exactly where to go, so the size of the list doesn\'t matter. This single, direct operation is why it\'s O(1).'
+                },
+                'O(log n)': {
+                    label: 'O(log n) - Logarithmic',
+                    color: 'rgb(56, 189, 248)', // sky-400
+                    equation: n => Math.log2(n),
+                    description: 'Incredibly efficient. The algorithm cuts the problem size by a fraction (usually half) at each step. Performance scales very slowly even for huge inputs.',
+                    analogy: 'Like finding a word in a physical dictionary. You don\'t read every word; you open to the middle, decide which half the word is in, and repeat. You eliminate half the remaining pages with each step.',
+                    code: `def binary_search(sorted_list, target):\n    low, high = 0, len(sorted_list) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if sorted_list[mid] == target:\n            return True\n        elif sorted_list[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return False`,
+                    analysis: 'The key is the `while` loop. In each iteration, the search space (`high - low`) is cut in half. If you double the list size, it only takes one extra step to find the element. This halving process is the signature of O(log n).'
+                },
+                'O(n)': {
+                    label: 'O(n) - Linear',
+                    color: 'rgb(251, 191, 36)', // amber-400
+                    equation: n => n,
+                    description: 'A common and very respectable complexity. The runtime grows in direct, 1-to-1 proportion to the input size. Double the data, double the time.',
+                    analogy: 'Like reading every page of a book from start to finish. If the book has 100 pages, it takes 100 units of time. If it has 500 pages, it takes 500 units.',
+                    code: `def find_max(data_list):\n    # We have to check every single element\n    max_value = data_list[0]\n    for item in data_list:\n        if item > max_value:\n            max_value = item\n    return max_value`,
+                    analysis: 'The `for` loop is the dominant part. It must visit every single one of the \'n\' items in `data_list` to guarantee it finds the maximum. The number of operations is directly proportional to \'n\'.',
+                },
+                'O(n log n)': {
+                    label: 'O(n log n) - Log-Linear',
+                    color: 'rgb(249, 115, 22)', // orange-500
+                    equation: n => n * Math.log2(n),
+                    description: 'The gold standard for sorting algorithms. It\'s a combination of linear work being done a logarithmic number of times. Very scalable.',
+                    analogy: 'Imagine a librarian sorting a giant pile of returned books. A smart librarian might use a "merge sort" approach: divide the pile in half, sort each smaller pile (recursively), then merge the two sorted piles. This "divide and conquer" is often O(n log n).',
+                    code: `def sort_list(data_list):\n    # Python's Timsort is highly optimized\n    # Its average and worst-case is O(n log n)\n    return sorted(data_list)`,
+                    analysis: 'Python\'s built-in `sorted()` function uses an algorithm called Timsort. It\'s a hybrid algorithm that is incredibly efficient. While the implementation is complex, its performance characteristic is a classic O(n log n), making it very fast for large datasets.'
+                },
+                'O(n²)': {
+                    label: 'O(n²) - Quadratic',
+                    color: 'rgb(239, 68, 68)', // red-500
+                    equation: n => n * n,
+                    description: 'Gets slow, fast. The runtime grows by the square of the input size. Often characterized by nested loops over the same collection. Avoid if possible for large datasets.',
+                    analogy: 'Like shaking hands with everyone in a room. If there are \'n\' people, each person has to shake hands with n-1 other people. The total number of handshakes grows quadratically.',
+                    code: `def find_duplicates(data_list):\n    # A classic nested loop example\n    for i in range(len(data_list)):\n        for j in range(len(data_list)):\n            if i != j and data_list[i] == data_list[j]:\n                return True\n    return False`,
+                    analysis: 'The nested loops are the dead giveaway. The outer loop runs \'n\' times. For *each* of those iterations, the inner loop *also* runs \'n\' times. This results in n * n = n² operations in total. As n grows, this number explodes.'
+                },
+                'O(2ⁿ)': {
+                    label: 'O(2ⁿ) - Exponential',
+                    color: 'rgb(124, 58, 237)', // violet-600
+                    equation: n => Math.pow(2, n),
+                    description: 'The danger zone. Runtime doubles with each additional element in the input. Only feasible for very, very small input sizes. Often seen in brute-force recursive solutions.',
+                    analogy: 'Like trying to guess a password by trying every single combination of characters. Each extra character you add to the password length doubles the number of possibilities you have to check.',
+                    code: `def fibonacci_recursive(n):\n    # Inefficient recursive solution\n    if n <= 1:\n        return n\n    return fibonacci_recursive(n-1) + fibonacci_recursive(n-2)`,
+                    analysis: 'This function calls itself twice for each value of `n` (except the base cases). This creates a tree of function calls that grows exponentially. To calculate `fib(5)`, you need to calculate `fib(4)` and `fib(3)`, and so on, leading to a huge number of repeated calculations.'
+                }
+            };
+
+            // Chart.js setup
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            const nSlider = document.getElementById('n-slider');
+            const nValue = document.getElementById('n-value');
+            const toggleContainer = document.querySelector('.flex-wrap.justify-center');
+
+            let chartDataSets = [];
+            let visibleDataSets = new Set(['O(n)', 'O(n²)', 'O(log n)']);
+
+            function generateChartData(maxN) {
+                const labels = Array.from({ length: maxN }, (_, i) => i + 1);
+                chartDataSets = Object.keys(complexities).map(key => {
+                    const complexity = complexities[key];
+                    return {
+                        label: complexity.label,
+                        data: labels.map(n => complexity.equation(n)),
+                        borderColor: complexity.color,
+                        backgroundColor: complexity.color + '33',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1,
+                        hidden: !visibleDataSets.has(key)
+                    };
+                });
+            }
+
+            generateChartData(100);
+
+            const growthChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: chartDataSets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Input Size (n)'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Number of Operations'
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                           display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    animation: {
+                        duration: 200
+                    }
+                }
+            });
+
+            function updateChart() {
+                const maxN = parseInt(nSlider.value, 10);
+                nValue.textContent = maxN;
+
+                const labels = Array.from({ length: maxN }, (_, i) => i + 1);
+                growthChart.data.labels = labels;
+
+                chartDataSets.forEach((dataset, index) => {
+                    const key = Object.keys(complexities)[index];
+                    const new_data = labels.map(n => complexities[key].equation(n));
+                    growthChart.data.datasets[index].data = new_data;
+                    growthChart.data.datasets[index].hidden = !visibleDataSets.has(key);
+                });
+                growthChart.update();
+            }
+            
+            Object.keys(complexities).forEach(key => {
+                const complexity = complexities[key];
+                const isVisible = visibleDataSets.has(key);
+                const button = document.createElement('button');
+                button.textContent = complexity.label;
+                button.dataset.key = key;
+                button.className = `px-3 py-1 rounded-full border-2 transition-colors ${isVisible ? 'text-white' : ''}`;
+                button.style.borderColor = complexity.color;
+                button.style.backgroundColor = isVisible ? complexity.color : 'transparent';
+                button.style.color = isVisible ? 'white' : complexity.color;
+
+                button.addEventListener('click', () => {
+                    if (visibleDataSets.has(key)) {
+                        visibleDataSets.delete(key);
+                        button.style.backgroundColor = 'transparent';
+                        button.style.color = complexity.color;
+                    } else {
+                        visibleDataSets.add(key);
+                        button.style.backgroundColor = complexity.color;
+                        button.style.color = 'white';
+                    }
+                    updateChart();
+                });
+                toggleContainer.appendChild(button);
+            });
+
+            nSlider.addEventListener('input', updateChart);
+            updateChart();
+
+            // Deep Dive section population
+            const bigOContainer = document.getElementById('big-o-container');
+            Object.values(complexities).forEach((comp, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-6 rounded-xl shadow-lg';
+                card.innerHTML = `
+                    <h3 class="text-2xl font-bold mb-2" style="color: ${comp.color};">${comp.label}</h3>
+                    <p class="text-slate-600 mb-4">${comp.description}</p>
+                    <div class="p-4 bg-stone-100 rounded-lg mb-4 italic">
+                        <p><strong>Analogy:</strong> ${comp.analogy}</p>
+                    </div>
+                    <div class="code-block mb-4">${comp.code}</div>
+                    <button data-target="analysis-${index}" class="toggle-analysis-btn bg-sky-500 text-white text-sm font-bold py-2 px-4 rounded-full hover:bg-sky-600 transition-colors">Analyze Code</button>
+                    <div id="analysis-${index}" class="hidden mt-4 p-4 bg-sky-50 border-l-4 border-sky-400 text-sky-800 rounded-r-lg">
+                        <p>${comp.analysis}</p>
+                    </div>
+                `;
+                bigOContainer.appendChild(card);
+            });
+            
+            document.querySelectorAll('.toggle-analysis-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+                    const targetEl = document.getElementById(targetId);
+                    targetEl.classList.toggle('hidden');
+                });
+            });
+            
+            // Simplification animation
+            const simplifyBtn = document.getElementById('simplify-btn');
+            const simplifiedResult = document.getElementById('simplified-result');
+            const formula = document.getElementById('simplification-formula');
+            simplifyBtn.addEventListener('click', () => {
+                const lowerTerms = formula.querySelectorAll('[data-term="n"], [data-term="const"]');
+                const constantFactor = formula.querySelector('[data-term="n2"]');
+
+                lowerTerms.forEach(term => term.classList.add('fade-out'));
+                
+                setTimeout(() => {
+                    constantFactor.textContent = 'n²'; 
+                }, 250);
+
+                setTimeout(() => {
+                    simplifiedResult.textContent = 'O(n²)';
+                    simplifiedResult.classList.add('fade-in');
+                }, 750);
+            });
+
+            // Quiz logic
+            const quizData = [
+                {
+                    question: "Find the sum of all numbers in a list.",
+                    code: `def sum_list(numbers):\n    total = 0\n    for num in numbers:\n        total += num\n    return total`,
+                    options: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
+                    answer: 'O(n)'
+                },
+                {
+                    question: "Check if a specific number exists in a list.",
+                    code: `def contains_number(numbers, target):\n    for num in numbers:\n        if num == target:\n            return True\n    return False`,
+                    options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
+                    answer: 'O(n)'
+                },
+                {
+                    question: "Get an item from a dictionary using its key.",
+                    code: `def get_value(my_dict, key):\n    return my_dict.get(key)`,
+                    options: ['O(1)', 'O(n)', 'O(log n)'],
+                    answer: 'O(1)'
+                },
+                {
+                    question: "Print a multiplication table for a given size.",
+                    code: `def multiplication_table(size):\n    for i in range(1, size + 1):\n        for j in range(1, size + 1):\n            print(f"{i} * {j} = {i*j}")`,
+                    options: ['O(n)', 'O(n log n)', 'O(n²)', 'O(2ⁿ)'],
+                    answer: 'O(n²)'
+                }
+            ];
+            const quizContainer = document.getElementById('quiz-container');
+            let currentQuestionIndex = 0;
+            let score = 0;
+
+            function loadQuiz() {
+                if (currentQuestionIndex >= quizData.length) {
+                    quizContainer.innerHTML = `
+                        <h3 class="text-2xl font-bold mb-4 text-center">Challenge Complete!</h3>
+                        <p class="text-center text-xl">You scored ${score} out of ${quizData.length}</p>
+                        <div class="text-center mt-6">
+                            <button id="restart-quiz" class="bg-amber-500 text-white font-bold py-2 px-6 rounded-full hover:bg-amber-600">Try Again</button>
+                        </div>
+                    `;
+                     document.getElementById('restart-quiz').addEventListener('click', () => {
+                        currentQuestionIndex = 0;
+                        score = 0;
+                        loadQuiz();
+                    });
+                    return;
+                }
+                const currentQuestion = quizData[currentQuestionIndex];
+                quizContainer.innerHTML = `
+                    <p class="font-medium mb-2">Question ${currentQuestionIndex + 1}/${quizData.length}</p>
+                    <h3 class="text-xl font-bold mb-4">${currentQuestion.question}</h3>
+                    <div class="code-block mb-6">${currentQuestion.code}</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="options-container">
+                        ${currentQuestion.options.map(option => `<button class="option-btn w-full p-3 bg-slate-100 rounded-lg text-left hover:bg-slate-200 transition-colors">${option}</button>`).join('')}
+                    </div>
+                    <div id="feedback" class="mt-4"></div>
+                `;
+                
+                document.querySelectorAll('.option-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const selectedAnswer = e.target.textContent;
+                        const isCorrect = selectedAnswer === currentQuestion.answer;
+                        const feedbackEl = document.getElementById('feedback');
+                        
+                        document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+                        
+                        if(isCorrect) {
+                            score++;
+                            e.target.classList.add('bg-green-500', 'text-white');
+                            feedbackEl.innerHTML = `<p class="text-green-600 font-bold">Correct! The loop must visit every element once, making it linear time.</p>`;
+                        } else {
+                            e.target.classList.add('bg-red-500', 'text-white');
+                            feedbackEl.innerHTML = `<p class="text-red-600 font-bold">Not quite. The correct answer is ${currentQuestion.answer}.</p>`;
+                            document.querySelectorAll('.option-btn').forEach(btn => {
+                                if (btn.textContent === currentQuestion.answer) {
+                                    btn.classList.add('bg-green-500', 'text-white');
+                                }
+                            });
+                        }
+                        
+                        setTimeout(() => {
+                            currentQuestionIndex++;
+                            loadQuiz();
+                        }, 2000);
+                    });
+                });
+            }
+
+            loadQuiz();
+        });
+    </script>
+</body>
+</html>
